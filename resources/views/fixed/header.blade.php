@@ -15,14 +15,39 @@
        
         <div class="">
             <ul class="navbar-nav">
+                
+                
+                @guest
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ route('register') }}">Registrarse</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ route('login') }}">Iniciar sesión</a>
+                </li>
+                
+
+                @else
+                @if (auth()->user()->type === 'admin')
                 <li class="nav-item">
                   <a class="nav-link" href="{{ url('products/showall') }}">Administración</a>
                 </li>
+                @endif
                 <li class="nav-item">
-                    <a class="nav-link" href="">Cesta</a>
+                  <a class="nav-link" href="{{ route('cesta.index') }}">Cesta</a>
                 </li>
+                <form action="{{ route('logout') }}" method="POST">
+
+                @csrf
+                <button class="btn btn-primary">Cerrar sesión</button>
+                            
+                </form>
+
+                
+                @endguest
             </ul>
         </div>
+
+         
       </div>
     </div>
   </nav>

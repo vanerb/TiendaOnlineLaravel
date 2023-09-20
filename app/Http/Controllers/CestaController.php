@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cesta;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class CestaController extends Controller
@@ -12,7 +13,15 @@ class CestaController extends Controller
      */
     public function index()
     {
-        //
+        $user_id = auth()->user();
+
+        // Obtén los productos de la cesta del usuario con el ID 1
+        $productsInCesta = Cesta::where('user_id', $user_id->id)->get();
+
+        // Ahora, puedes usar los IDs de producto en $productsInCesta para obtener los datos de los productos desde la tabla "products"
+        $products = Product::whereIn('id', $productsInCesta->pluck('producto_id'))->get();
+
+        return view('cesta.index', ['product' => $products]);
     }
 
     /**
@@ -28,18 +37,6 @@ class CestaController extends Controller
      */
     public function store(Request $request, string $id_producto)
     {
-        $request->validate([
-            'user_id'=> 'required',
-            'producto_id'=>'required'
-        ]);
-
-        $cesta = new Cesta();
-
-        $cesta->user_id = auth()->user()->id;
-        $cesta->producto_id = $id_producto;
-        $cesta->save();
-
-        return redirect()->route('product.index')->with('success' , 'Producto creado correctamente');
     }
 
     /**
@@ -69,10 +66,30 @@ class CestaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $cestum)
     {
-        $cesta = Cesta::find($id);
-        $cesta->delete();
-        return redirect()->route('product.index')->with('success', 'Producto eliminado');
+        // Encuentra el primer modelo que coincida con la condición
+        $cesta = Cesta::where('producto_id', $cestum)->first();
+
+        $product = Product::where('id', $cestum)->first();
+
+        if ($cesta) {
+            if ($product) {
+                $stock = $product->stock;
+    
+                if ($stock > 0) {
+                    // Reduce el stock en 1
+                    $product->stock = $stock + 1;
+                    $product->save();
+                }
+            }
+
+            // Borra el modelo específico
+            $cesta->delete();
+            return redirect()->route('cesta.index')->with('success', 'Producto eliminado');
+        } else {
+            // Maneja el caso donde no se encuentra el modelo
+            return redirect()->route('cesta.index')->with('error', 'El producto no se encontró en la cesta');
+        }
     }
 }

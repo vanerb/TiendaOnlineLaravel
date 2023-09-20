@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cesta;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,14 +17,15 @@ class ProductController extends Controller
      */
     public function index()
     {
-        
+
         $product = Product::where('stock', '>', 0)->get();
-        return view('product.index', ['product'=>$product]);
+        return view('product.index', ['product' => $product]);
     }
 
-    public function showall(){
+    public function showall()
+    {
         $product = Product::all();
-        return view('product.editmode', ['product'=>$product]);
+        return view('product.editmode', ['product' => $product]);
     }
 
     /**
@@ -33,17 +36,48 @@ class ProductController extends Controller
         //
     }
 
+   
+
+    public function addcesta(string $id_producto)
+    {
+        $cesta = new Cesta();
+
+        //$cesta->user_id = auth()->user()->id;
+        $cesta->user_id = auth()->user()->id;
+        $cesta->producto_id = $id_producto;
+
+        // Obtén el producto por su ID
+        $product = Product::where('id', $id_producto)->first();
+
+        if ($product) {
+            $stock = $product->stock;
+
+            if ($stock > 0) {
+                // Reduce el stock en 1
+                $product->stock = $stock - 1;
+                $product->save();
+                $cesta->save();
+                return redirect()->route('products.index')->with('success', 'Producto añadido a la cesta correctamente');
+            } else {
+                return redirect()->route('products.index')->with('error', 'El producto está agotado.');
+            }
+        } else {
+            return redirect()->route('products.index')->with('error', 'Producto no encontrado.');
+        }
+    }
+
+
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'name'=> 'required|min:3',
-            'description'=>'required',
+            'name' => 'required|min:3',
+            'description' => 'required',
             'image' => 'required',
-            'price'=>'required',
-            'stock'=>'required'
+            'price' => 'required',
+            'stock' => 'required'
         ]);
 
         $product = new Product();
@@ -54,16 +88,15 @@ class ProductController extends Controller
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('public');
             $product->image = str_replace('public/', '', $imagePath);
-        }
-        else{
+        } else {
             $product->image = $request->image;
         }
-        
+
         $product->price = $request->price;
         $product->stock = $request->stock;
         $product->save();
 
-        return redirect()->route('products.showall')->with('success' , 'Producto creado correctamente');
+        return redirect()->route('products.showall')->with('success', 'Producto creado correctamente');
     }
 
     /**
@@ -72,7 +105,7 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::find($id);
-        return view('product.show', ['product'=>$product]);
+        return view('product.show', ['product' => $product]);
     }
 
     /**
@@ -92,25 +125,25 @@ class ProductController extends Controller
 
         $product->name = $request->name;
         $product->description = $request->description;
-    
+
         // Verifica si se ha cargado una nueva imagen
         if ($request->hasFile('image')) {
             // Elimina la imagen anterior si no se utiliza en ningún otro producto
             $previousImage = $product->image;
             $product->image = $request->file('image')->store('public');
             $product->image = str_replace('public/', '', $product->image);
-    
+
             // Verifica si la imagen anterior no se utiliza en ningún otro producto
             $isImageInUse = Product::where('image', $previousImage)->where('id', '!=', $product->id)->exists();
             if (!$isImageInUse) {
                 Storage::delete('public/' . $previousImage);
             }
         }
-    
+
         $product->price = $request->price;
         $product->stock = $request->stock;
         $product->save();
-    
+
         return redirect()->route('products.showall')->with('success', 'Producto actualizado');
     }
 

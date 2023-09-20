@@ -62,7 +62,13 @@
             </div>
             <div class="card-footer">
                 <p class="text-center">{{ $products->price }} €</p>
-                <button class="btn btn-success w-100">Comprar</button>
+                @auth
+                <form action="{{ route('products.addcesta', ['product' => $products->id]) }}" method="post">
+                    @csrf
+                    <button type="submit" class="btn btn-success w-100">Comprar</button>
+                </form>
+                @endauth
+               
                 
                 
                 
